@@ -126,12 +126,14 @@ export default function FacilityDetailsPage() {
 
   // Slot Breakdown Map
   const slotCountMap = {};
-  slotSummary.forEach(s => { slotCountMap[s._id] = s.count; });
+  if (Array.isArray(slotSummary)) {
+    slotSummary.forEach(s => { slotCountMap[s._id] = s.count; });
+  }
 
-  const availableCount = slotCountMap.available || facility.availableSlots || 0;
-  const occupiedCount = slotCountMap.occupied || facility.occupiedSlots || 0;
-  const reservedCount = slotCountMap.reserved || facility.reservedSlots || 0;
-  const oosCount = slotCountMap.out_of_service || facility.outOfServiceSlots || 0;
+  const availableCount = slotCountMap.available !== undefined ? slotCountMap.available : (facility.availableSlots ?? 0);
+  const occupiedCount = slotCountMap.occupied !== undefined ? slotCountMap.occupied : (facility.occupiedSlots ?? 0);
+  const reservedCount = slotCountMap.reserved !== undefined ? slotCountMap.reserved : (facility.reservedSlots ?? 0);
+  const oosCount = slotCountMap.out_of_service !== undefined ? slotCountMap.out_of_service : (facility.outOfServiceSlots ?? 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">

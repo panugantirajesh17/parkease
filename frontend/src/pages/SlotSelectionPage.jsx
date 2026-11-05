@@ -377,7 +377,7 @@ export default function SlotSelectionPage() {
               </div>
               {selectedSlot ? (
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold">
-                  RESERVED
+                  SELECTED
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded bg-navy-700 text-slate-300 font-mono text-[10px]">

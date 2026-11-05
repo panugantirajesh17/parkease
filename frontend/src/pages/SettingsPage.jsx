@@ -11,11 +11,15 @@ import {
   ShieldAlert,
   Save,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Sliders,
+  DollarSign,
+  Clock,
+  Layers
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user, switchRole, refreshProfile } = useAuth();
+  const { user, role, switchRole, refreshProfile } = useAuth();
   const { addToast } = useToast();
 
   const [name, setName] = useState(user?.name || '');
@@ -26,6 +30,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  // Platform admin settings
+  const [defaultRate, setDefaultRate] = useState(60);
+  const [gracePeriod, setGracePeriod] = useState(15);
+  const [maxDuration, setMaxDuration] = useState(24);
+  const [cancellationCutoff, setCancellationCutoff] = useState(30);
+
   useEffect(() => {
     if (user) {
       setName(user.name || '');
@@ -35,6 +45,17 @@ export default function SettingsPage() {
         setReminderNotif(!!user.notificationPrefs.reservationReminders);
         setPromoNotif(!!user.notificationPrefs.promotions);
       }
+    }
+    // Load local platform settings if any
+    const saved = localStorage.getItem('parkease_platform_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.defaultRate) setDefaultRate(parsed.defaultRate);
+        if (parsed.gracePeriod) setGracePeriod(parsed.gracePeriod);
+        if (parsed.maxDuration) setMaxDuration(parsed.maxDuration);
+        if (parsed.cancellationCutoff) setCancellationCutoff(parsed.cancellationCutoff);
+      } catch (e) {}
     }
   }, [user]);
 
@@ -63,6 +84,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSavePlatformSettings = (e) => {
+    e.preventDefault();
+    const payload = {
+      defaultRate: parseFloat(defaultRate),
+      gracePeriod: parseInt(gracePeriod),
+      maxDuration: parseInt(maxDuration),
+      cancellationCutoff: parseInt(cancellationCutoff),
+    };
+    localStorage.setItem('parkease_platform_settings', JSON.stringify(payload));
+    addToast('Platform administrative settings saved successfully!', 'success');
+  };
+
   const handleResetSessions = async () => {
     if (!window.confirm('Reset all demo parking sessions and free all reserved spaces?')) return;
     try {
@@ -70,6 +103,7 @@ export default function SettingsPage() {
       const res = await seedApi.resetSessions();
       if (res.data.success) {
         addToast('All sessions cleared and parking slots freed!', 'success');
+        setTimeout(() => window.location.reload(), 600);
       }
     } catch (err) {
       addToast('Reset failed', 'error');
@@ -95,27 +129,120 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-navy-800">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 font-mono">
+              System Configuration
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5 mt-1">
             <SettingsIcon className="w-6 h-6 text-emerald-400" />
             <span>Platform & Profile Settings</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage your demo identity profile, notification channels, and database reset controls
+            Manage your demo identity profile, platform-wide rules, and database maintenance controls.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Column (Profile & Notifications) */}
+        {/* Left Column (Profile & Platform Settings) */}
         <div className="md:col-span-2 space-y-6">
+          {/* Admin Platform Rules Panel */}
+          {role === 'admin' && (
+            <form onSubmit={handleSavePlatformSettings} className="bg-navy-900 border border-purple-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-navy-800">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" />
+                  <span>Platform Administrative Rules & Defaults</span>
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-mono border border-purple-500/30">
+                  Admin Only
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold uppercase mb-1.5">
+                    Baseline Rate (₹/Hour)
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={defaultRate}
+                    onChange={(e) => setDefaultRate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-850 border border-navy-700 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Fallback hourly rate applied when rules are absent.</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold uppercase mb-1.5">
+                    Grace Period (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="60"
+                    value={gracePeriod}
+                    onChange={(e) => setGracePeriod(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-850 border border-navy-700 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Buffer before auto-releasing un-claimed slots.</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold uppercase mb-1.5">
+                    Max Continuous Duration (Hours)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="72"
+                    value={maxDuration}
+                    onChange={(e) => setMaxDuration(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-850 border border-navy-700 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Upper limit for a single reservation booking.</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold uppercase mb-1.5">
+                    Free Cancellation Window (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="180"
+                    value={cancellationCutoff}
+                    onChange={(e) => setCancellationCutoff(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-850 border border-navy-700 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Minutes before arrival where unreserve is penalty-free.</p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-navy-800 flex justify-end">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Update Platform Rules</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* User Profile Form */}
           <form onSubmit={handleSaveProfile} className="bg-navy-900 border border-navy-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
             <h3 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-navy-800">
               <User className="w-4 h-4 text-emerald-400" />
-              <span>Personal Details</span>
+              <span>Personal Identity Details</span>
             </h3>
 
             <div className="space-y-4 text-xs">
@@ -130,7 +257,7 @@ export default function SettingsPage() {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-navy-800 text-slate-400 font-mono cursor-not-allowed"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
-                  Demo identities are stored by email in localStorage and MongoDB.
+                  Demo identities are persisted by email in localStorage and MongoDB.
                 </p>
               </div>
 

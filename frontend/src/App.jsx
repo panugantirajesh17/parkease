@@ -88,6 +88,8 @@ export default function App() {
                 <Route path="/admin/users" element={<UserManagementPage />} />
                 <Route path="/admin/analytics" element={<AnalyticsPage />} />
                 <Route path="/admin/facilities" element={<FacilityManagementPage />} />
+                <Route path="/admin/slots" element={<SlotManagementPage />} />
+                <Route path="/admin/gate" element={<GateManagementPage />} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

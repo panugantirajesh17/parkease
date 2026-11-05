@@ -102,6 +102,21 @@ export default function ActiveSessionPage() {
     }
   };
 
+  const handleUnreserveConfirmed = async (resId) => {
+    if (!window.confirm('Are you sure you want to unreserve this spot and cancel the booking? The spot will be freed immediately.')) return;
+    try {
+      setLoading(true);
+      const res = await reservationApi.cancel(resId, 'User unreserved from active session page');
+      if (res.data.success) {
+        addToast('Spot unreserved and freed successfully!', 'success');
+        await fetchSession();
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Unreserve failed', 'error');
+      setLoading(false);
+    }
+  };
+
   const handleExtend = async () => {
     if (!activeReservation) return;
     try {
@@ -232,13 +247,21 @@ export default function ActiveSessionPage() {
                   Spot {confirmedReservation.slot?.slotNumber || 'A01'} • {confirmedReservation.vehicleSnapshot?.registrationNumber}
                 </div>
               </div>
-              <button
-                onClick={() => handleSimulatedCheckIn(confirmedReservation._id)}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Simulate Vehicle Check-In Now</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <button
+                  onClick={() => handleSimulatedCheckIn(confirmedReservation._id)}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Simulate Vehicle Check-In</span>
+                </button>
+                <button
+                  onClick={() => handleUnreserveConfirmed(confirmedReservation._id)}
+                  className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-xs transition"
+                >
+                  Unreserve / Cancel
+                </button>
+              </div>
             </div>
           ) : (
             <Link

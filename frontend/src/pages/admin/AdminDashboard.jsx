@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { analyticsApi, reservationApi, userApi, facilityApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import {
   Shield,
   Users,
@@ -16,7 +17,11 @@ import {
   BarChart3,
   ChevronRight,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  QrCode,
+  Settings,
+  XCircle,
+  Plus
 } from 'lucide-react';
 import {
   AreaChart,
@@ -30,47 +35,66 @@ import {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [stats, setStats] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [facilities, setFacilities] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
+
+  const loadAdminData = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, resRes, facRes, trendRes] = await Promise.allSettled([
+        analyticsApi.getAdminStats(),
+        reservationApi.getAll({ limit: 12 }),
+        facilityApi.getAll({ limit: 8 }),
+        analyticsApi.getReservationsOverTime(14)
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
+        setStats(statsRes.value.data.stats);
+      }
+
+      if (resRes.status === 'fulfilled' && resRes.value.data.success) {
+        setReservations(resRes.value.data.reservations || []);
+      }
+
+      if (facRes.status === 'fulfilled' && facRes.value.data.success) {
+        setFacilities(facRes.value.data.facilities || []);
+      }
+
+      if (trendRes.status === 'fulfilled' && trendRes.value.data.success) {
+        setTrendData(trendRes.value.data.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadAdminData = async () => {
-      try {
-        setLoading(true);
-        const [statsRes, resRes, facRes, trendRes] = await Promise.allSettled([
-          analyticsApi.getAdminStats(),
-          reservationApi.getAll({ limit: 8 }),
-          facilityApi.getAll({ limit: 6 }),
-          analyticsApi.getReservationsOverTime(14)
-        ]);
-
-        if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
-          setStats(statsRes.value.data.stats);
-        }
-
-        if (resRes.status === 'fulfilled' && resRes.value.data.success) {
-          setReservations(resRes.value.data.reservations || []);
-        }
-
-        if (facRes.status === 'fulfilled' && facRes.value.data.success) {
-          setFacilities(facRes.value.data.facilities || []);
-        }
-
-        if (trendRes.status === 'fulfilled' && trendRes.value.data.success) {
-          setTrendData(trendRes.value.data.data || []);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadAdminData();
   }, []);
+
+  const handleAdminCancelReservation = async (reservationId, refNum) => {
+    if (!window.confirm(`Admin Action: Cancel reservation ${refNum} and immediately free the assigned parking slot?`)) return;
+    try {
+      setCancellingId(reservationId);
+      const res = await reservationApi.cancel(reservationId, 'Cancelled by Platform Administrator');
+      if (res.data.success) {
+        addToast(`Reservation ${refNum} cancelled and spot freed!`, 'success');
+        setReservations(prev => prev.map(r => r._id === reservationId ? { ...r, status: 'cancelled' } : r));
+        loadAdminData();
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Admin cancellation failed', 'error');
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,29 +114,31 @@ export default function AdminDashboard() {
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-bold border border-purple-500/20">
               Admin Platform Control
             </span>
-            <span className="text-xs text-slate-400">• System Oversight</span>
+            <span className="text-xs text-slate-400">• Full System God-Mode Access</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
             System Administrator Overview
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Platform telemetry, system metrics, slot utilization, and user records
+            Complete platform governance: Slots, facilities, barrier gates, telemetry, and user records
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link
+            to="/admin/slots"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
+          >
+            <Layers className="w-4 h-4" />
+            <span>Manage Slots</span>
+          </Link>
+
+          <Link
             to="/admin/analytics"
             className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition flex items-center gap-1.5"
           >
             <BarChart3 className="w-4 h-4" />
-            <span>Detailed Analytics</span>
-          </Link>
-          <Link
-            to="/admin/users"
-            className="px-4 py-2 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 font-bold text-xs transition"
-          >
-            User Accounts
+            <span>Analytics</span>
           </Link>
         </div>
       </div>
@@ -142,6 +168,98 @@ export default function AdminDashboard() {
         })}
       </div>
 
+      {/* Admin God-Mode Feature Access Cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+            Administrative Management Modules
+          </h3>
+          <span className="text-[10px] text-purple-400 font-mono">100% System Access</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            to="/admin/slots"
+            className="p-5 rounded-2xl bg-navy-900 hover:bg-navy-850 border border-navy-800 hover:border-emerald-500/50 shadow-xl transition group space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition">
+                <Layers className="w-5 h-5" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm group-hover:text-emerald-300 transition">
+                Slot Management
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Add, edit, delete parking spaces, toggle status & bulk create bays
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/facilities"
+            className="p-5 rounded-2xl bg-navy-900 hover:bg-navy-850 border border-navy-800 hover:border-blue-500/50 shadow-xl transition group space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-105 transition">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm group-hover:text-blue-300 transition">
+                Facility Management
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Create & configure parking complexes, pricing tiers & amenities
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/gate"
+            className="p-5 rounded-2xl bg-navy-900 hover:bg-navy-850 border border-navy-800 hover:border-amber-500/50 shadow-xl transition group space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm group-hover:text-amber-300 transition">
+                Barrier Gate Terminal
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Automated gate check-in, pass scanner & live vehicle barrier entry
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/settings"
+            className="p-5 rounded-2xl bg-navy-900 hover:bg-navy-850 border border-navy-800 hover:border-purple-500/50 shadow-xl transition group space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition">
+                <Settings className="w-5 h-5" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm group-hover:text-purple-300 transition">
+                System Settings & Reseed
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Platform parameters, rate configurations & database reset
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* Main Row: Activity Trend Chart & Quick Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Trend Area Chart (2 Cols) */}
@@ -149,7 +267,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between pb-2">
             <div>
               <h3 className="text-base font-bold text-white">Reservation Activity Trend</h3>
-              <p className="text-xs text-slate-400">Daily reservation bookings volume</p>
+              <p className="text-xs text-slate-400">Daily reservation bookings volume from MongoDB</p>
             </div>
             <Link
               to="/admin/analytics"
@@ -224,12 +342,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Global Reservations Table */}
+      {/* Global Reservations Table with Admin Actions */}
       <div className="bg-navy-900 border border-navy-800 rounded-3xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-navy-800">
           <div>
-            <h3 className="text-base font-bold text-white">Platform-Wide Reservations</h3>
-            <p className="text-xs text-slate-400">Real-time booking audit log across all facilities</p>
+            <h3 className="text-base font-bold text-white">Platform-Wide Reservations Audit</h3>
+            <p className="text-xs text-slate-400">Live MongoDB reservation records with administrative override</p>
           </div>
         </div>
 
@@ -237,36 +355,64 @@ export default function AdminDashboard() {
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">
               <tr>
-                <th className="py-2.5">Reference</th>
-                <th className="py-2.5">User</th>
-                <th className="py-2.5">Facility</th>
-                <th className="py-2.5">Space</th>
-                <th className="py-2.5">Vehicle</th>
-                <th className="py-2.5">Duration</th>
-                <th className="py-2.5">Total Demo Charge</th>
-                <th className="py-2.5">Status</th>
+                <th className="py-2.5 px-2">Reference</th>
+                <th className="py-2.5 px-2">User</th>
+                <th className="py-2.5 px-2">Facility</th>
+                <th className="py-2.5 px-2">Space</th>
+                <th className="py-2.5 px-2">Vehicle</th>
+                <th className="py-2.5 px-2">Duration</th>
+                <th className="py-2.5 px-2">Total Fee</th>
+                <th className="py-2.5 px-2">Status</th>
+                <th className="py-2.5 px-2 text-right">Admin Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-800/60 font-mono">
               {reservations.map((r) => (
                 <tr key={r._id} className="hover:bg-navy-850/40 transition">
-                  <td className="py-3 font-bold text-purple-400">
+                  <td className="py-3 px-2 font-bold text-purple-400">
                     <Link to={`/confirmation/${r._id}`} className="hover:underline">
                       {r.reservationRef}
                     </Link>
                   </td>
-                  <td className="py-3 font-sans text-slate-200">{r.user?.name || r.user?.email}</td>
-                  <td className="py-3 font-sans text-white truncate max-w-[140px]">{r.facility?.name}</td>
-                  <td className="py-3 font-bold text-emerald-400">{r.slot?.slotNumber || 'AUTO'}</td>
-                  <td className="py-3 text-white font-bold">{r.vehicleSnapshot?.registrationNumber}</td>
-                  <td className="py-3 text-slate-400">{r.durationHours}h</td>
-                  <td className="py-3 text-white font-bold">
+                  <td className="py-3 px-2 font-sans text-slate-200">{r.user?.name || r.user?.email}</td>
+                  <td className="py-3 px-2 font-sans text-white truncate max-w-[140px]">{r.facility?.name}</td>
+                  <td className="py-3 px-2 font-bold text-emerald-400">{r.slot?.slotNumber || 'AUTO'}</td>
+                  <td className="py-3 px-2 text-white font-bold">{r.vehicleSnapshot?.registrationNumber}</td>
+                  <td className="py-3 px-2 text-slate-400">{r.durationHours}h</td>
+                  <td className="py-3 px-2 text-white font-bold">
                     ₹{r.pricing?.finalTotal || r.pricing?.estimatedTotal || 0}
                   </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-navy-850 border border-navy-700 text-slate-300">
+                  <td className="py-3 px-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                      r.status === 'confirmed'
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                        : r.status === 'checked_in'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : r.status === 'completed'
+                        ? 'bg-slate-800 text-slate-300 border-slate-700'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    }`}>
                       {r.status}
                     </span>
+                  </td>
+                  <td className="py-3 px-2 text-right">
+                    <div className="flex items-center justify-end gap-2 font-sans">
+                      <Link
+                        to={`/confirmation/${r._id}`}
+                        className="px-2 py-1 rounded bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-300 text-[11px]"
+                      >
+                        Pass
+                      </Link>
+                      {['confirmed', 'checked_in'].includes(r.status) && (
+                        <button
+                          onClick={() => handleAdminCancelReservation(r._id, r.reservationRef)}
+                          disabled={cancellingId === r._id}
+                          className="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-semibold"
+                        >
+                          {cancellingId === r._id ? 'Releasing...' : 'Unreserve'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

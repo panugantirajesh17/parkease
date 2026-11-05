@@ -303,6 +303,30 @@ export default function Navbar() {
                             Admin Overview
                           </Link>
                           <Link
+                            to="/admin/slots"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-navy-800 transition"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+                            Slot Management
+                          </Link>
+                          <Link
+                            to="/admin/facilities"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-navy-800 transition"
+                          >
+                            <Building2 className="w-4 h-4 text-blue-400" />
+                            Facility Management
+                          </Link>
+                          <Link
+                            to="/admin/gate"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-navy-800 transition"
+                          >
+                            <QrCode className="w-4 h-4 text-amber-400" />
+                            Barrier Gate Terminal
+                          </Link>
+                          <Link
                             to="/admin/users"
                             onClick={() => setUserDropdownOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-navy-800 transition"
@@ -475,6 +499,38 @@ export default function Navbar() {
                   >
                     <Shield className="w-4 h-4 text-purple-400" />
                     Admin Overview
+                  </Link>
+                  <Link
+                    to="/admin/slots"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-navy-800"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+                    Slot Management
+                  </Link>
+                  <Link
+                    to="/admin/facilities"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-navy-800"
+                  >
+                    <Building2 className="w-4 h-4 text-blue-400" />
+                    Facility Management
+                  </Link>
+                  <Link
+                    to="/admin/gate"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-navy-800"
+                  >
+                    <QrCode className="w-4 h-4 text-amber-400" />
+                    Barrier Gate Terminal
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-navy-800"
+                  >
+                    <Users className="w-4 h-4 text-slate-400" />
+                    User Management
                   </Link>
                   <Link
                     to="/admin/analytics"

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const asyncHandler = require('../middleware/asyncHandler');
 const Facility = require('../models/Facility');
 const Slot = require('../models/Slot');
@@ -39,18 +40,29 @@ exports.getFacilities = asyncHandler(async (req, res) => {
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const total = await Facility.countDocuments(query);
-  const facilities = await Facility.find(query).sort(sort).skip(skip).limit(parseInt(limit)).populate('operator', 'name email');
+  const facilities = await Facility.find(query)
+    .sort(sort)
+    .skip(skip)
+    .limit(parseInt(limit))
+    .populate('operator', 'name email');
+
   res.json({ success: true, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)), facilities });
 });
 
 exports.getFacility = asyncHandler(async (req, res) => {
   const facility = await Facility.findById(req.params.id).populate('operator', 'name email phone');
   if (!facility) return res.status(404).json({ success: false, message: 'Facility not found' });
+
+  const objId = new mongoose.Types.ObjectId(facility._id.toString());
   const slotSummary = await Slot.aggregate([
-    { $match: { facility: facility._id } },
+    { $match: { facility: objId } },
     { $group: { _id: '$status', count: { $sum: 1 } } }
   ]);
-  const reviews = await Review.find({ facility: facility._id }).populate('user', 'name avatar').sort({ createdAt: -1 }).limit(10);
+  const reviews = await Review.find({ facility: facility._id })
+    .populate('user', 'name avatar')
+    .sort({ createdAt: -1 })
+    .limit(10);
+
   res.json({ success: true, facility, slotSummary, reviews });
 });
 
@@ -64,7 +76,13 @@ exports.createFacility = asyncHandler(async (req, res) => {
       if (count >= facility.totalSlots) break;
       const n = Math.min(Math.ceil(facility.totalSlots / sections.length), facility.totalSlots - count);
       for (let i = 1; i <= n; i++) {
-        slots.push({ facility: facility._id, slotNumber: `${section}${String(i).padStart(2,'0')}`, section, supportedVehicleTypes: facility.supportedVehicleTypes || ['car'], status: 'available' });
+        slots.push({
+          facility: facility._id,
+          slotNumber: `${section}${String(i).padStart(2,'0')}`,
+          section,
+          supportedVehicleTypes: facility.supportedVehicleTypes || ['car'],
+          status: 'available'
+        });
         count++;
         if (count >= facility.totalSlots) break;
       }
@@ -78,9 +96,12 @@ exports.createFacility = asyncHandler(async (req, res) => {
 exports.updateFacility = asyncHandler(async (req, res) => {
   let facility = await Facility.findById(req.params.id);
   if (!facility) return res.status(404).json({ success: false, message: 'Facility not found' });
-  if (req.user.role === 'operator' && facility.operator.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ success: false, message: 'Not authorized' });
+
+  // Admin has god-mode; operator can only edit their own
+  if (req.user.role !== 'admin' && facility.operator.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: 'Not authorized to edit this facility' });
   }
+
   facility = await Facility.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
   res.json({ success: true, facility });
 });
@@ -88,12 +109,24 @@ exports.updateFacility = asyncHandler(async (req, res) => {
 exports.deleteFacility = asyncHandler(async (req, res) => {
   const facility = await Facility.findById(req.params.id);
   if (!facility) return res.status(404).json({ success: false, message: 'Facility not found' });
+
+  // Admin or assigned operator
+  if (req.user.role !== 'admin' && facility.operator.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: 'Not authorized to deactivate this facility' });
+  }
+
   await Facility.findByIdAndUpdate(req.params.id, { isActive: false });
   res.json({ success: true, message: 'Facility deactivated' });
 });
 
+// @desc    Get facilities for current user (Operators see assigned, Admins see all)
+// @route   GET /api/facilities/my
 exports.getMyFacilities = asyncHandler(async (req, res) => {
-  const facilities = await Facility.find({ operator: req.user._id });
+  let query = {};
+  if (req.user && req.user.role === 'operator') {
+    query = { operator: req.user._id };
+  }
+  const facilities = await Facility.find(query).sort({ name: 1 });
   res.json({ success: true, facilities });
 });
 

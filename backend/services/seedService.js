@@ -5,6 +5,7 @@ const Vehicle = require('../models/Vehicle');
 const Reservation = require('../models/Reservation');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
+const { updateFacilitySlotCounts } = require('../controllers/slotController');
 
 async function seedInitialData() {
   await Promise.all([
@@ -239,9 +240,17 @@ async function seedInitialData() {
     }
   ]);
 
-  // Set the checked_in reservation slot status to occupied
+  // Associate confirmed and checked_in reservation slots with proper statuses
+  if (availSlots[0]) {
+    await Slot.findByIdAndUpdate(availSlots[0]._id, { status: 'reserved', currentReservation: reservations[0]._id });
+  }
   if (availSlots[1]) {
     await Slot.findByIdAndUpdate(availSlots[1]._id, { status: 'occupied', currentReservation: reservations[1]._id });
+  }
+
+  // Recalculate real dynamic slot counts for all facilities
+  for (const fac of facilities) {
+    await updateFacilitySlotCounts(fac._id);
   }
 
   // Set driver1 favorites
