@@ -96,6 +96,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAdminDeleteReservation = async (reservationId, refNum) => {
+    if (!window.confirm(`Permanently delete reservation ${refNum} from MongoDB audit log? This will also release any held parking slots.`)) return;
+    try {
+      const res = await reservationApi.delete(reservationId);
+      if (res.data.success) {
+        addToast(`Reservation ${refNum} permanently deleted`, 'info');
+        setReservations(prev => prev.filter(r => r._id !== reservationId));
+        loadAdminData();
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Delete reservation failed', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-32 text-center space-y-3">
@@ -396,7 +410,7 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td className="py-3 px-2 text-right">
-                    <div className="flex items-center justify-end gap-2 font-sans">
+                    <div className="flex items-center justify-end gap-1.5 font-sans">
                       <Link
                         to={`/confirmation/${r._id}`}
                         className="px-2 py-1 rounded bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-300 text-[11px]"
@@ -412,6 +426,13 @@ export default function AdminDashboard() {
                           {cancellingId === r._id ? 'Releasing...' : 'Unreserve'}
                         </button>
                       )}
+                      <button
+                        onClick={() => handleAdminDeleteReservation(r._id, r.reservationRef)}
+                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-navy-850 transition"
+                        title="Delete Reservation Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>

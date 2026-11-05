@@ -40,4 +40,15 @@ router.put('/:id/role', demoAuth, requireRole('admin'), asyncHandler(async (req,
   res.json({ success: true, user });
 }));
 
+// Admin Delete User Account
+router.delete('/:id', demoAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  if (req.user._id.toString() === req.params.id) {
+    return res.status(400).json({ success: false, message: 'You cannot delete your own active administrator account' });
+  }
+  const user = await User.findById(req.params.id);
+  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+  await User.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: `User account ${user.email} permanently deleted` });
+}));
+
 module.exports = router;

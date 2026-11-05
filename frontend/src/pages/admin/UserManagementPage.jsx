@@ -12,7 +12,8 @@ import {
   Ban,
   Clock,
   Sparkles,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2
 } from 'lucide-react';
 
 export default function UserManagementPage() {
@@ -69,6 +70,19 @@ export default function UserManagementPage() {
       }
     } catch (err) {
       addToast(err.response?.data?.message || 'Toggle failed', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (userId, userEmail) => {
+    if (!window.confirm(`Permanently delete account for "${userEmail}" from the platform? This cannot be undone.`)) return;
+    try {
+      const res = await userApi.delete(userId);
+      if (res.data.success) {
+        addToast(`User account ${userEmail} permanently deleted`, 'info');
+        setUsers((prev) => prev.filter((u) => u._id !== userId));
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Delete user failed', 'error');
     }
   };
 
@@ -206,16 +220,25 @@ export default function UserManagementPage() {
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => handleToggleActive(u._id)}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
-                            u.isActive
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          }`}
-                        >
-                          {u.isActive ? 'Suspend' : 'Activate'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleToggleActive(u._id)}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+                              u.isActive
+                                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            }`}
+                          >
+                            {u.isActive ? 'Suspend' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u._id, u.email)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-navy-850 transition"
+                            title="Delete User Account"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

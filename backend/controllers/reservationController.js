@@ -385,3 +385,23 @@ exports.extendReservation = asyncHandler(async (req, res) => {
 
   res.json({ success: true, reservation, newEndTime });
 });
+
+// @desc    Permanently delete reservation record (Admin only)
+// @route   DELETE /api/reservations/:id
+exports.deleteReservation = asyncHandler(async (req, res) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
+
+  // If slot was held, release it back to available
+  if (reservation.slot && ['confirmed', 'checked_in'].includes(reservation.status)) {
+    await Slot.findByIdAndUpdate(reservation.slot, {
+      status: 'available',
+      currentReservation: null,
+      lastUpdated: new Date()
+    });
+    await updateFacilitySlotCounts(reservation.facility);
+  }
+
+  await Reservation.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: `Reservation record ${reservation.reservationRef} permanently deleted` });
+});

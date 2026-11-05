@@ -38,7 +38,7 @@ export const facilityApi = {
   getById: (id) => api.get(`/facilities/${id}`),
   create: (data) => api.post('/facilities', data),
   update: (id, data) => api.put(`/facilities/${id}`, data),
-  delete: (id) => api.delete(`/facilities/${id}`),
+  delete: (id, params) => api.delete(`/facilities/${id}`, { params }),
   getMyFacilities: () => api.get('/facilities/operator/mine'),
   toggleFavorite: (id) => api.put(`/facilities/${id}/favorite`),
   getRecommendations: (params) => api.get('/facilities/recommendations', { params }),
@@ -65,6 +65,7 @@ export const reservationApi = {
   checkOut: (id) => api.put(`/reservations/${id}/checkout`),
   cancel: (id, reason) => api.put(`/reservations/${id}/cancel`, { reason }),
   extend: (id, additionalHours) => api.put(`/reservations/${id}/extend`, { additionalHours }),
+  delete: (id) => api.delete(`/reservations/${id}`),
 };
 
 // Vehicles API
@@ -113,6 +114,7 @@ export const userApi = {
   updateRole: (id, role) => api.put(`/users/${id}/role`, { role }),
   updateProfile: (data) => api.put('/users/profile', data),
   getFavorites: () => api.get('/users/favorites'),
+  delete: (id) => api.delete(`/users/${id}`),
 };
 
 // Seed / Demo API

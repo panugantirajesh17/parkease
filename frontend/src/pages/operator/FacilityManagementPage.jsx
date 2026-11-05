@@ -170,6 +170,17 @@ export default function FacilityManagementPage() {
     }
   };
 
+  const handlePermanentDelete = async (id, name) => {
+    if (!window.confirm(`PERMANENTLY DELETE facility "${name}" and all associated parking slots from the database? This action is irreversible.`)) return;
+    try {
+      const res = await facilityApi.delete(id, { permanent: 'true' });
+      addToast(res.data?.message || `Facility "${name}" permanently deleted`, 'success');
+      setFacilities(prev => prev.filter(f => f._id !== id));
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to delete facility', 'error');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Title */}
@@ -285,18 +296,18 @@ export default function FacilityManagementPage() {
                     <span>Slots ({fac.totalSlots})</span>
                   </Link>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => openEditModal(fac)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition"
                       title="Edit facility details"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDeactivate(fac._id, fac.name)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-navy-800"
-                      title="Deactivate facility"
+                      onClick={() => handlePermanentDelete(fac._id, fac.name)}
+                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition"
+                      title="Permanently Delete Facility & All Slots"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

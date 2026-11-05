@@ -4,6 +4,7 @@ const Facility = require('../models/Facility');
 const Slot = require('../models/Slot');
 const Review = require('../models/Review');
 const User = require('../models/User');
+const Reservation = require('../models/Reservation');
 
 exports.getFacilities = asyncHandler(async (req, res) => {
   const {
@@ -112,7 +113,21 @@ exports.deleteFacility = asyncHandler(async (req, res) => {
 
   // Admin or assigned operator
   if (req.user.role !== 'admin' && facility.operator.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ success: false, message: 'Not authorized to deactivate this facility' });
+    return res.status(403).json({ success: false, message: 'Not authorized to delete this facility' });
+  }
+
+  const { permanent } = req.query;
+  // If permanent delete is requested or user is admin
+  if (permanent === 'true' || req.user.role === 'admin') {
+    // Delete all slots in this facility
+    await Slot.deleteMany({ facility: facility._id });
+    // Cancel any active reservations in this facility
+    await Reservation.updateMany(
+      { facility: facility._id, status: { $in: ['confirmed', 'checked_in'] } },
+      { status: 'cancelled', cancellationReason: 'Facility permanently removed by administrator' }
+    );
+    await Facility.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: `Facility "${facility.name}" and all associated slots permanently deleted` });
   }
 
   await Facility.findByIdAndUpdate(req.params.id, { isActive: false });

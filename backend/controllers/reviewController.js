@@ -81,7 +81,11 @@ exports.updateReview = asyncHandler(async (req, res) => {
 // @desc    Delete review
 // @route   DELETE /api/reviews/:id
 exports.deleteReview = asyncHandler(async (req, res) => {
-  const review = await Review.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+  let query = { _id: req.params.id };
+  if (req.user?.role !== 'admin') {
+    query.user = req.user._id;
+  }
+  const review = await Review.findOneAndDelete(query);
   if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
   await recalculateFacilityRating(review.facility);
   res.json({ success: true, message: 'Review deleted' });

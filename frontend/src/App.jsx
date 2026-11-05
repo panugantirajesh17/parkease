@@ -3,18 +3,22 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 
-// Navigation & Global Components
+// Navigation, Motion Background & Global Components
 import DemoBanner from './components/DemoBanner';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MotionBackground from './components/MotionBackground';
 
-// Public Pages
+// Public & Auth Pages
 import HomePage from './pages/HomePage';
 import FindParkingPage from './pages/FindParkingPage';
 import FacilityDetailsPage from './pages/FacilityDetailsPage';
 import SlotSelectionPage from './pages/SlotSelectionPage';
 import ReservationConfirmationPage from './pages/ReservationConfirmationPage';
 import DemoLoginPage from './pages/DemoLoginPage';
+import DriverLoginPage from './pages/auth/DriverLoginPage';
+import OperatorLoginPage from './pages/auth/OperatorLoginPage';
+import AdminLoginPage from './pages/auth/AdminLoginPage';
 import HelpFaqPage from './pages/HelpFaqPage';
 import AboutPage from './pages/AboutPage';
 import CompareFacilitiesPage from './pages/CompareFacilitiesPage';
@@ -45,7 +49,10 @@ export default function App() {
     <ToastProvider>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen flex flex-col bg-[#0A0F1D] text-slate-100 font-sans">
+          <div className="min-h-screen flex flex-col text-slate-100 font-sans relative selection:bg-emerald-500 selection:text-slate-950">
+            {/* Cinematic Motion Background */}
+            <MotionBackground />
+
             {/* Top Demo Banner for seamless grading & role testing */}
             <DemoBanner />
 
@@ -53,7 +60,7 @@ export default function App() {
             <Navbar />
 
             {/* Page Content */}
-            <main className="flex-1">
+            <main className="flex-1 relative z-10">
               <Routes>
                 {/* Public Discovery Routes */}
                 <Route path="/" element={<HomePage />} />
@@ -63,7 +70,14 @@ export default function App() {
                 <Route path="/confirmation/:id" element={<ReservationConfirmationPage />} />
                 <Route path="/compare" element={<CompareFacilitiesPage />} />
                 <Route path="/calculator" element={<PriceCalculatorPage />} />
+                
+                {/* 3 Dedicated Login Pages & Unified Gateway */}
                 <Route path="/login" element={<DemoLoginPage />} />
+                <Route path="/login/driver" element={<DriverLoginPage />} />
+                <Route path="/login/user" element={<DriverLoginPage />} />
+                <Route path="/login/operator" element={<OperatorLoginPage />} />
+                <Route path="/login/admin" element={<AdminLoginPage />} />
+
                 <Route path="/faq" element={<HelpFaqPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
