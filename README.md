@@ -3,8 +3,8 @@
 > **Final-Year Academic Project Demonstration**  
 > Built with the **MERN Stack**: React (Vite) • Node.js • Express.js • MongoDB • Tailwind CSS • Leaflet OpenStreetMap • Recharts
 
----
 
+ 
 ## 🅿️ Project Overview
 
 **ParkEase** is a comprehensive, presentation-ready Smart Parking Management Platform designed to eliminate urban parking congestion, automate lot operations, provide transparent real-time pricing, and offer interactive slot selection.
