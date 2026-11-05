@@ -8,6 +8,7 @@ import DemoBanner from './components/DemoBanner';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MotionBackground from './components/MotionBackground';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Public & Auth Pages
 import HomePage from './pages/HomePage';
@@ -61,7 +62,8 @@ export default function App() {
 
             {/* Page Content */}
             <main className="flex-1 relative z-10">
-              <Routes>
+              <ErrorBoundary>
+                <Routes>
                 {/* Public Discovery Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/find" element={<FindParkingPage />} />
@@ -108,7 +110,8 @@ export default function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </main>
+            </ErrorBoundary>
+          </main>
 
             {/* Professional Footer with Academic Disclaimers */}
             <Footer />

@@ -21,7 +21,8 @@ import {
   QrCode,
   Settings,
   XCircle,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import {
   AreaChart,
