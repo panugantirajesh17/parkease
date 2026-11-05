@@ -124,5 +124,14 @@ For a real-world commercial deployment, the following architecture would be inte
 
 ---
 
+## 🚀 Recent Presentation Updates & Enhancements
+- **3 Dedicated Role Login Portals:** Separate, themed entryways for Commuters/Drivers (`/login/driver`), Parking Lot Operators (`/login/operator`), and Platform Administrators (`/login/admin`), alongside the Universal Multi-Role Gateway (`/login`).
+- **Comprehensive Admin Deletion Controls:** System Administrators have unrestricted cascading deletion authority over facilities (with child slots/reservations cascade), individual slots, demo user accounts, and platform reservation audit records.
+- **Dynamic Slot State & Unreserve:** Real-time synchronization between reservation actions and slot status in MongoDB; drivers can unreserve/cancel bookings anytime to immediately free spaces.
+- **Cinematic Ambient Motion Background:** Hardware-accelerated glowing aurora orbs and drifting cybernetic grid for a modern, presentation-grade aesthetic.
+- **Global Error Boundaries:** Seamless runtime error containment with quick reload and recovery options.
+
+---
+
 ## 📄 License
 Academic demonstration build — created for presentation and grading.
