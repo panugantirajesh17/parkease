@@ -17,6 +17,16 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Ensure database connection is ready for incoming requests on serverless
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('[ParkEase DB Middleware]', err.message);
+  }
+  next();
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));

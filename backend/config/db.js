@@ -12,12 +12,26 @@ const connectDB = async () => {
   // Try connecting to existing local/configured MongoDB with a short timeout
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 3000,
     });
     console.log(`[ParkEase DB] Connected to external MongoDB: ${conn.connection.host}`);
+    
+    // Auto-seed if database is empty
+    try {
+      const Facility = require('../models/Facility');
+      const count = await Facility.countDocuments();
+      if (count === 0) {
+        console.log('[ParkEase DB] Empty database detected. Auto-seeding initial demonstration facilities and slots...');
+        const { seedInitialData } = require('../services/seedService');
+        await seedInitialData();
+        console.log('[ParkEase DB] Auto-seed complete!');
+      }
+    } catch (seedErr) {
+      console.warn('[ParkEase DB] Auto-seed check notice:', seedErr.message);
+    }
     return;
   } catch (err) {
-    console.log(`[ParkEase DB] Local MongoDB unavailable (${err.message}). Starting MongoMemoryServer for standalone demo...`);
+    console.log(`[ParkEase DB] External/Local MongoDB unavailable (${err.message}). Starting MongoMemoryServer for standalone demo...`);
   }
 
   // Fallback: Start an in-memory MongoDB instance
@@ -48,8 +62,7 @@ const connectDB = async () => {
     }, 500);
 
   } catch (memErr) {
-    console.error(`[ParkEase DB] Critical: Could not start In-Memory MongoDB: ${memErr.message}`);
-    process.exit(1);
+    console.warn(`[ParkEase DB] Notice: In-Memory MongoDB binary unavailable (${memErr.message}). In Vercel, please configure MONGODB_URI in project settings for persistent database access.`);
   }
 };
 

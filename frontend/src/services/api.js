@@ -1,7 +1,18 @@
 import axios from 'axios';
 
-// Default to same-origin relative '/api' on Vercel deployment and Vite proxy; falls back to VITE_API_URL if configured
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Resolve base API URL:
+// In browser on a remote host (e.g. *.vercel.app), if VITE_API_URL contains 'localhost', ignore it and use relative '/api' to avoid Mixed Content / unreachable host blocks
+const getApiBase = () => {
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      return '/api';
+    }
+  }
+  return envUrl || '/api';
+};
+
+const API_BASE = getApiBase();
 
 const api = axios.create({
   baseURL: API_BASE,
