@@ -40,7 +40,15 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/seed', require('./routes/seed'));
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  res.json({
+    status: 'ok',
+    mode: mongoose.connection.readyState === 1 ? 'mongodb' : 'hardcoded_store',
+    dbState: mongoose.connection.readyState,
+    time: new Date()
+  });
+});
 
 // Error handler
 app.use((err, req, res, next) => {

@@ -53,9 +53,11 @@ export default function InteractiveSlotGrid({
         };
       case 'reserved':
         return {
-          bg: 'bg-amber-950/30 border-amber-500/30 text-amber-400/80 cursor-not-allowed',
+          bg: isSelected
+            ? 'bg-amber-500 text-slate-950 font-black border-amber-300 shadow-lg shadow-amber-500/30 scale-105 z-10 cursor-pointer'
+            : 'bg-amber-950/30 border-amber-500/50 text-amber-400 hover:border-amber-400 hover:scale-102 cursor-pointer',
           label: 'Reserved',
-          selectable: false,
+          selectable: true,
         };
       case 'occupied':
         return {

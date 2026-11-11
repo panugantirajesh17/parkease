@@ -15,7 +15,8 @@ import {
   Zap,
   MapPin,
   Sparkles,
-  Plus
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 
 export default function SlotSelectionPage() {
@@ -191,6 +192,27 @@ export default function SlotSelectionPage() {
     } catch (err) {
       const msg = err.response?.data?.message || 'Reservation booking failed';
       addToast(msg, 'error');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const handleUnreserveSlot = async () => {
+    if (!selectedSlot) return;
+    try {
+      setBookingLoading(true);
+      await slotApi.updateStatus(selectedSlot._id, 'available');
+      addToast(`Slot ${selectedSlot.slotNumber} has been unreserved and is now available!`, 'success');
+      const updated = { ...selectedSlot, status: 'available' };
+      setSelectedSlot(updated);
+      setSlots((prev) => prev.map((s) => (s._id === selectedSlot._id ? updated : s)));
+      setFacility((prev) => prev ? {
+        ...prev,
+        availableSlots: (prev.availableSlots || 0) + 1,
+        reservedSlots: Math.max(0, (prev.reservedSlots || 1) - 1)
+      } : prev);
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to unreserve slot', 'error');
     } finally {
       setBookingLoading(false);
     }
@@ -443,15 +465,31 @@ export default function SlotSelectionPage() {
               </div>
             </div>
 
-            {/* Confirmation CTA */}
-            <button
-              onClick={handleConfirmReservation}
-              disabled={bookingLoading}
-              className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{bookingLoading ? 'Reserving Spot...' : 'Confirm Demo Reservation'}</span>
-            </button>
+            {/* Confirmation or Unreserve CTA */}
+            {selectedSlot?.status === 'reserved' ? (
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                  Spot <strong>{selectedSlot.slotNumber}</strong> is currently <strong>RESERVED</strong>. If plans have changed, click below to unreserve it immediately.
+                </div>
+                <button
+                  onClick={handleUnreserveSlot}
+                  disabled={bookingLoading}
+                  className="w-full py-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-sm shadow-xl shadow-amber-600/30 transition flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>{bookingLoading ? 'Unreserving Spot...' : 'Unreserve Spot (Free Up)'}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConfirmReservation}
+                disabled={bookingLoading}
+                className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{bookingLoading ? 'Reserving Spot...' : 'Confirm Demo Reservation'}</span>
+              </button>
+            )}
 
             <p className="text-[10px] text-slate-500 text-center leading-relaxed">
               * This is an academic demonstration reservation. No real payment is charged. Your slot is held in the MongoDB database.

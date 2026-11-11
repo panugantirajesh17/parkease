@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const asyncHandler = require('../middleware/asyncHandler');
 const Reservation = require('../models/Reservation');
 const Facility = require('../models/Facility');
@@ -5,6 +6,7 @@ const Slot = require('../models/Slot');
 const Vehicle = require('../models/Vehicle');
 const Notification = require('../models/Notification');
 const { updateFacilitySlotCounts } = require('./slotController');
+const mockStore = require('../services/mockStore');
 
 /**
  * Server-side price calculation — never trust the frontend price.
@@ -56,7 +58,6 @@ const calculatePrice = (facility, vehicleType, durationHours) => {
 // @desc    Create reservation
 // @route   POST /api/reservations
 exports.createReservation = asyncHandler(async (req, res) => {
-  const mongoose = require('mongoose');
   if (mongoose.connection.readyState !== 1) {
     const { createMockReservation } = require('../services/mockStore');
     return res.status(201).json({ success: true, reservation: createMockReservation(req.body, req.user) });
@@ -98,7 +99,6 @@ exports.createReservation = asyncHandler(async (req, res) => {
   const vehicleType = vehicleSnapshot?.vehicleType || req.body.vehicleType || 'car';
 
   let slot = null;
-  const mongoose = require('mongoose');
   if (slotId && mongoose.Types.ObjectId.isValid(slotId)) {
     slot = await Slot.findById(slotId);
     if (slot && slot.facility.toString() === facilityId) {
@@ -184,7 +184,6 @@ exports.createReservation = asyncHandler(async (req, res) => {
 // @desc    Get authenticated user's reservations
 // @route   GET /api/reservations/my
 exports.getMyReservations = asyncHandler(async (req, res) => {
-  const mongoose = require('mongoose');
   if (mongoose.connection.readyState !== 1) {
     const { getMockReservations } = require('../services/mockStore');
     return res.json({ success: true, total: 1, page: 1, pages: 1, reservations: getMockReservations(req.user) });
@@ -215,7 +214,6 @@ exports.getMyReservations = asyncHandler(async (req, res) => {
 // @desc    Get all reservations (operator sees own facilities, admin sees all)
 // @route   GET /api/reservations
 exports.getAllReservations = asyncHandler(async (req, res) => {
-  const mongoose = require('mongoose');
   if (mongoose.connection.readyState !== 1) {
     const { getMockReservations } = require('../services/mockStore');
     return res.json({ success: true, total: 1, page: 1, pages: 1, reservations: getMockReservations() });
@@ -254,20 +252,38 @@ exports.getAllReservations = asyncHandler(async (req, res) => {
 // @desc    Get single reservation by id or reservationRef
 // @route   GET /api/reservations/:id
 exports.getReservation = asyncHandler(async (req, res) => {
-  const idOrRef = req.params.id;
-  // If looks like an ObjectId, try both, otherwise treat as ref
-  const query = idOrRef.length === 24
-    ? { $or: [{ _id: idOrRef }, { reservationRef: idOrRef.toUpperCase() }] }
-    : { reservationRef: idOrRef.toUpperCase() };
+  if (mongoose.connection.readyState !== 1) {
+    const { mockReservations } = require('../services/mockStore');
+    const r = mockReservations.find(res => res._id === req.params.id || res.reservationRef === req.params.id.toUpperCase());
+    if (r) return res.json({ success: true, reservation: r });
+    return res.status(404).json({ success: false, message: 'Reservation not found' });
+  }
 
-  const reservation = await Reservation.findOne(query)
-    .populate('facility', 'name address coverImage amenities operatingHours entryInstructions cancellationPolicy')
-    .populate('slot', 'slotNumber section floor hasEvCharging isAccessible')
-    .populate('vehicle')
-    .populate('user', 'name email phone');
+  try {
+    const idOrRef = req.params.id;
+    const query = idOrRef.length === 24
+      ? { $or: [{ _id: idOrRef }, { reservationRef: idOrRef.toUpperCase() }] }
+      : { reservationRef: idOrRef.toUpperCase() };
 
-  if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
-  res.json({ success: true, reservation });
+    const reservation = await Reservation.findOne(query)
+      .populate('facility', 'name address coverImage amenities operatingHours entryInstructions cancellationPolicy')
+      .populate('slot', 'slotNumber section floor hasEvCharging isAccessible')
+      .populate('vehicle')
+      .populate('user', 'name email phone');
+
+    if (!reservation) {
+      const { mockReservations } = require('../services/mockStore');
+      const r = mockReservations.find(res => res._id === req.params.id || res.reservationRef === req.params.id.toUpperCase());
+      if (r) return res.json({ success: true, reservation: r });
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
+    res.json({ success: true, reservation });
+  } catch (err) {
+    const { mockReservations } = require('../services/mockStore');
+    const r = mockReservations.find(res => res._id === req.params.id || res.reservationRef === req.params.id.toUpperCase());
+    if (r) return res.json({ success: true, reservation: r });
+    res.status(404).json({ success: false, message: 'Reservation not found' });
+  }
 });
 
 // @desc    Check in
@@ -342,32 +358,42 @@ exports.checkOut = asyncHandler(async (req, res) => {
 // @desc    Cancel reservation
 // @route   PUT /api/reservations/:id/cancel
 exports.cancelReservation = asyncHandler(async (req, res) => {
-  const reservation = await Reservation.findById(req.params.id);
-  if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
-
-  if (['completed', 'cancelled'].includes(reservation.status)) {
-    return res.status(400).json({ success: false, message: `Cannot cancel a ${reservation.status} reservation` });
+  if (mongoose.connection.readyState !== 1) {
+    const { cancelMockReservation } = require('../services/mockStore');
+    const r = cancelMockReservation(req.params.id, req.body.reason);
+    if (!r) return res.status(404).json({ success: false, message: 'Reservation not found' });
+    return res.json({ success: true, reservation: r });
   }
 
-  reservation.status = 'cancelled';
-  reservation.cancellationReason = req.body.reason || 'Cancelled by user';
-  reservation.cancelledAt = new Date();
-  await reservation.save();
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) {
+      const { cancelMockReservation } = require('../services/mockStore');
+      const r = cancelMockReservation(req.params.id, req.body.reason);
+      if (r) return res.json({ success: true, reservation: r });
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
 
-  if (reservation.slot) {
-    await Slot.findByIdAndUpdate(reservation.slot, { status: 'available', currentReservation: null, lastUpdated: new Date() });
-    await updateFacilitySlotCounts(reservation.facility);
+    if (['completed', 'cancelled'].includes(reservation.status)) {
+      return res.status(400).json({ success: false, message: `Cannot cancel a ${reservation.status} reservation` });
+    }
+
+    reservation.status = 'cancelled';
+    reservation.cancellationReason = req.body.reason || 'Cancelled by user';
+    reservation.cancelledAt = new Date();
+    await reservation.save();
+
+    if (reservation.slot) {
+      await Slot.findByIdAndUpdate(reservation.slot, { status: 'available', currentReservation: null, lastUpdated: new Date() });
+      await updateFacilitySlotCounts(reservation.facility);
+    }
+
+    res.json({ success: true, reservation });
+  } catch (err) {
+    const { cancelMockReservation } = require('../services/mockStore');
+    const r = cancelMockReservation(req.params.id, req.body.reason);
+    res.json({ success: true, reservation: r });
   }
-
-  await Notification.create({
-    user: reservation.user,
-    type: 'reservation_cancelled',
-    title: 'Reservation Cancelled',
-    message: `Your reservation ${reservation.reservationRef} has been cancelled.`,
-    relatedReservation: reservation._id
-  });
-
-  res.json({ success: true, reservation });
 });
 
 // @desc    Extend reservation duration
@@ -418,19 +444,32 @@ exports.extendReservation = asyncHandler(async (req, res) => {
 // @desc    Permanently delete reservation record (Admin only)
 // @route   DELETE /api/reservations/:id
 exports.deleteReservation = asyncHandler(async (req, res) => {
-  const reservation = await Reservation.findById(req.params.id);
-  if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
-
-  // If slot was held, release it back to available
-  if (reservation.slot && ['confirmed', 'checked_in'].includes(reservation.status)) {
-    await Slot.findByIdAndUpdate(reservation.slot, {
-      status: 'available',
-      currentReservation: null,
-      lastUpdated: new Date()
-    });
-    await updateFacilitySlotCounts(reservation.facility);
+  if (mongoose.connection.readyState !== 1) {
+    const { deleteMockReservation } = require('../services/mockStore');
+    return res.json(deleteMockReservation(req.params.id));
   }
 
-  await Reservation.findByIdAndDelete(req.params.id);
-  res.json({ success: true, message: `Reservation record ${reservation.reservationRef} permanently deleted` });
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) {
+      const { deleteMockReservation } = require('../services/mockStore');
+      return res.json(deleteMockReservation(req.params.id));
+    }
+
+    // If slot was held, release it back to available
+    if (reservation.slot && ['confirmed', 'checked_in'].includes(reservation.status)) {
+      await Slot.findByIdAndUpdate(reservation.slot, {
+        status: 'available',
+        currentReservation: null,
+        lastUpdated: new Date()
+      });
+      await updateFacilitySlotCounts(reservation.facility);
+    }
+
+    await Reservation.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: `Reservation record ${reservation.reservationRef} permanently deleted` });
+  } catch (err) {
+    const { deleteMockReservation } = require('../services/mockStore');
+    res.json(deleteMockReservation(req.params.id));
+  }
 });
