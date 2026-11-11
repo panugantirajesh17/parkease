@@ -3,6 +3,10 @@ const mongoose = require('mongoose');
 let mongodInstance = null;
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/parkease';
   
   // Try connecting to existing local/configured MongoDB with a short timeout
