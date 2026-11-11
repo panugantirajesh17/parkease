@@ -5,6 +5,12 @@ const Slot = require('../models/Slot');
 const User = require('../models/User');
 
 exports.getAdminStats = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockStats } = require('../services/mockStore');
+    return res.json({ success: true, stats: getMockStats() });
+  }
+
   const [totalUsers, totalFacilities, totalSlots, reservationStats, slotStats] = await Promise.all([
     User.countDocuments(),
     Facility.countDocuments({ isActive: true }),

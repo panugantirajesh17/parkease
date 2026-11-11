@@ -5,6 +5,12 @@ const Reservation = require('../models/Reservation');
 // @desc    Get all vehicles for authenticated user
 // @route   GET /api/vehicles
 exports.getVehicles = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockVehicles } = require('../services/mockStore');
+    return res.json({ success: true, vehicles: getMockVehicles(req.user) });
+  }
+
   const vehicles = await Vehicle.find({ owner: req.user._id, isActive: true })
     .sort({ isDefault: -1, createdAt: -1 });
   res.json({ success: true, vehicles });

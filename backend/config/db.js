@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+// Disable buffering so queries never hang or time out when DB is disconnected
+mongoose.set('bufferCommands', false);
+
 let mongodInstance = null;
 
 const connectDB = async () => {

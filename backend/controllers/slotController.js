@@ -42,6 +42,12 @@ const updateFacilitySlotCounts = async (facilityId) => {
 // @route   GET /api/slots/facility/:facilityId
 exports.getSlotsByFacility = asyncHandler(async (req, res) => {
   const { facilityId } = req.params;
+
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockSlots } = require('../services/mockStore');
+    return res.json({ success: true, slots: getMockSlots(facilityId) });
+  }
+
   let slots = [];
 
   try {

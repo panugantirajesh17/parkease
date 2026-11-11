@@ -8,6 +8,12 @@ const Notification = require('../models/Notification');
 // NOTE: This is a demonstration-only identity system. Not secure for production.
 // Production deployment would require JWT, bcrypt, and server-side RBAC.
 exports.demoLogin = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockUser } = require('../services/mockStore');
+    return res.json({ success: true, user: getMockUser(req.body) });
+  }
+
   const { email, name, role } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email is required' });
@@ -76,6 +82,12 @@ exports.switchRole = asyncHandler(async (req, res) => {
 // @desc    Get current demo user
 // @route   GET /api/auth/me
 exports.getMe = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockUser } = require('../services/mockStore');
+    return res.json({ success: true, user: getMockUser(req.user) });
+  }
+
   const user = await User.findById(req.user._id).populate('favoritesFacilities', 'name address coverImage availableSlots');
   res.json({ success: true, user });
 });

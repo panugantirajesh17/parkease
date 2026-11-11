@@ -7,6 +7,11 @@ const User = require('../models/User');
 const Reservation = require('../models/Reservation');
 
 exports.getFacilities = asyncHandler(async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockFacilities } = require('../services/mockStore');
+    return res.json(getMockFacilities(req.query));
+  }
+
   const {
     city, name, vehicleType, covered, evCharging, accessible, security,
     minPrice, maxPrice, facilityType, available, sortBy, page = 1, limit = 12
@@ -51,6 +56,11 @@ exports.getFacilities = asyncHandler(async (req, res) => {
 });
 
 exports.getFacility = asyncHandler(async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockFacility } = require('../services/mockStore');
+    return res.json(getMockFacility(req.params.id));
+  }
+
   const facility = await Facility.findById(req.params.id).populate('operator', 'name email phone');
   if (!facility) return res.status(404).json({ success: false, message: 'Facility not found' });
 

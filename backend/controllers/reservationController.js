@@ -56,6 +56,12 @@ const calculatePrice = (facility, vehicleType, durationHours) => {
 // @desc    Create reservation
 // @route   POST /api/reservations
 exports.createReservation = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { createMockReservation } = require('../services/mockStore');
+    return res.status(201).json({ success: true, reservation: createMockReservation(req.body, req.user) });
+  }
+
   const { facilityId, slotId, vehicleId, startTime, durationHours } = req.body;
 
   if (!facilityId || !startTime || !durationHours) {
@@ -178,6 +184,12 @@ exports.createReservation = asyncHandler(async (req, res) => {
 // @desc    Get authenticated user's reservations
 // @route   GET /api/reservations/my
 exports.getMyReservations = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockReservations } = require('../services/mockStore');
+    return res.json({ success: true, total: 1, page: 1, pages: 1, reservations: getMockReservations(req.user) });
+  }
+
   const { status, page = 1, limit = 10 } = req.query;
   const query = { user: req.user._id };
   if (status) query.status = status;
@@ -203,6 +215,12 @@ exports.getMyReservations = asyncHandler(async (req, res) => {
 // @desc    Get all reservations (operator sees own facilities, admin sees all)
 // @route   GET /api/reservations
 exports.getAllReservations = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    const { getMockReservations } = require('../services/mockStore');
+    return res.json({ success: true, total: 1, page: 1, pages: 1, reservations: getMockReservations() });
+  }
+
   const { status, facilityId, page = 1, limit = 20 } = req.query;
   let query = {};
 

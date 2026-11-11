@@ -18,6 +18,11 @@ const recalculateFacilityRating = async (facilityId) => {
 // @desc    Get reviews for a facility
 // @route   GET /api/reviews/facility/:facilityId
 exports.getFacilityReviews = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    return res.json({ success: true, total: 0, page: 1, pages: 1, reviews: [] });
+  }
+
   const { page = 1, limit = 10 } = req.query;
   const total = await Review.countDocuments({ facility: req.params.facilityId });
   const reviews = await Review.find({ facility: req.params.facilityId })
