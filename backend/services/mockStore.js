@@ -600,7 +600,7 @@ function createMockReservation(body, user) {
 }
 
 function cancelMockReservation(id, reason) {
-  const res = mockReservations.find(r => r._id === id);
+  const res = mockReservations.find(r => r._id === id || r.reservationRef === (id || '').toUpperCase());
   if (res) {
     res.status = 'cancelled';
     res.cancellationReason = reason || 'Cancelled by user';
@@ -618,7 +618,7 @@ function cancelMockReservation(id, reason) {
 }
 
 function deleteMockReservation(id) {
-  const idx = mockReservations.findIndex(r => r._id === id);
+  const idx = mockReservations.findIndex(r => r._id === id || r.reservationRef === (id || '').toUpperCase());
   if (idx !== -1) {
     const res = mockReservations[idx];
     if (res.slot) {
